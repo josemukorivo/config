@@ -1,7 +1,7 @@
 # config: Efficient Configuration and Environment Variable Management for Golang
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Go Report Card](https://goreportcard.com/badge/github.com/josemukorivo/config)](https://goreportcard.com/report/github.com/josemukorivo/config)
+[![Go Report Card](https://goreportcard.com/report/github.com/josemukorivo/config)](https://goreportcard.com/report/github.com/josemukorivo/config)
 [![GoDoc](https://godoc.org/github.com/josemukorivo/config?status.svg)](https://godoc.org/github.com/josemukorivo/config)
 
 Config is a lightweight and flexible Golang package designed to simplify configuration management in your applications. It seamlessly handles configuration files and environment variables, providing a unified interface for accessing and managing your application's settings.
