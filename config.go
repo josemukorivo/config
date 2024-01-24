@@ -112,3 +112,9 @@ func Parse(prefix string, cfg any) error {
 	}
 	return nil
 }
+
+func MustParse(prefix string, cfg any) {
+	if err := Parse(prefix, cfg); err != nil {
+		panic(err)
+	}
+}
