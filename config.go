@@ -10,14 +10,18 @@ import (
 	"time"
 )
 
+// ErrInvalidConfig is returned when the config is not a pointer to struct.
+var ErrInvalidConfig = errors.New("config: invalid config must be a pointer to struct")
+var ErrRequiredField = errors.New("config: required field missing value")
+
+// FieldError is returned when a field cannot be parsed.
 type FieldError struct {
+	Key   string
 	Name  string
 	Type  string
 	Value string
+	Err   error
 }
-
-var ErrInvalidConfig = errors.New("config: invalid config must be a pointer to struct")
-var ErrRequiredField = errors.New("config: required field missing value")
 
 func (e *FieldError) Error() string {
 	return fmt.Sprintf("config: field %s of type %s has invalid value %s", e.Name, e.Type, e.Value)
@@ -74,40 +78,11 @@ func Parse(prefix string, cfg any) error {
 				continue
 			}
 
-			switch f.Kind() {
-			case reflect.String:
-				f.SetString(value)
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				var (
-					val int64
-					err error
-				)
-				if f.Kind() == reflect.Int64 && f.Type().PkgPath() == "time" && f.Type().Name() == "Duration" {
-					var d time.Duration
-					d, err = time.ParseDuration(value)
-					val = int64(d)
-				} else {
-					val, err = strconv.ParseInt(value, 0, f.Type().Bits())
-				}
-				if err != nil {
-					return &FieldError{Name: fieldName, Type: f.Kind().String(), Value: value}
-				}
-				f.SetInt(val)
-			case reflect.Bool:
-				boolValue, err := strconv.ParseBool(value)
-				if err != nil {
-					return &FieldError{Name: fieldName, Type: f.Kind().String(), Value: value}
-				}
-				f.SetBool(boolValue)
-			case reflect.Float32, reflect.Float64:
-				floatValue, err := strconv.ParseFloat(value, f.Type().Bits())
-				if err != nil {
-					return &FieldError{Name: fieldName, Type: f.Kind().String(), Value: value}
-				}
-				f.SetFloat(floatValue)
-			default:
-				return &FieldError{Name: fieldName, Type: f.Kind().String(), Value: value}
+			err := parseField(value, f)
+			if err != nil {
+				return &FieldError{Key: key, Name: fieldName, Type: f.Kind().String(), Value: value, Err: err}
 			}
+
 		}
 	}
 	return nil
@@ -117,4 +92,40 @@ func MustParse(prefix string, cfg any) {
 	if err := Parse(prefix, cfg); err != nil {
 		panic(err)
 	}
+}
+
+func parseField(value string, field reflect.Value) error {
+	switch field.Kind() {
+	case reflect.String:
+		field.SetString(value)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		var (
+			val int64
+			err error
+		)
+		if field.Kind() == reflect.Int64 && field.Type().PkgPath() == "time" && field.Type().Name() == "Duration" {
+			var d time.Duration
+			d, err = time.ParseDuration(value)
+			val = int64(d)
+		} else {
+			val, err = strconv.ParseInt(value, 0, field.Type().Bits())
+		}
+		if err != nil {
+			return err
+		}
+		field.SetInt(val)
+	case reflect.Bool:
+		boolValue, err := strconv.ParseBool(value)
+		if err != nil {
+			return err
+		}
+		field.SetBool(boolValue)
+	case reflect.Float32, reflect.Float64:
+		floatValue, err := strconv.ParseFloat(value, field.Type().Bits())
+		if err != nil {
+			return err
+		}
+		field.SetFloat(floatValue)
+	}
+	return nil
 }

@@ -8,7 +8,6 @@ Config is a lightweight and flexible Golang package designed to simplify configu
 
 ## Features
 
-
 - **Environment Variables**: Automatically bind environment variables to configuration fields, simplifying deployment and dynamic configuration.
 - **Nested Configuration**: Support for nested and structured configuration data for better organization and readability.
 - **Default Values**: Define default values for configuration parameters, ensuring your application runs smoothly even when specific settings are not provided.
@@ -18,4 +17,5 @@ Config is a lightweight and flexible Golang package designed to simplify configu
 
 ```bash
 go get -u github.com/josemukorivo/config
+```
 
