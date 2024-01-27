@@ -5,28 +5,14 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strconv"
 	"strings"
-	"time"
 )
 
 // ErrInvalidConfig is returned when the config is not a pointer to struct.
 var ErrInvalidConfig = errors.New("config: invalid config must be a pointer to struct")
 var ErrRequiredField = errors.New("config: required field missing value")
 
-// FieldError is returned when a field cannot be parsed.
-type FieldError struct {
-	Key   string
-	Name  string
-	Type  string
-	Value string
-	Err   error
-}
-
-func (e *FieldError) Error() string {
-	return fmt.Sprintf("config: field %s of type %s has invalid value %s", e.Name, e.Type, e.Value)
-}
-
+// Parse parses the config, the config must be a pointer to struct and the struct can contain nested structs.
 func Parse(prefix string, cfg any) error {
 	if reflect.TypeOf(cfg).Kind() != reflect.Ptr {
 		return ErrInvalidConfig
@@ -80,52 +66,21 @@ func Parse(prefix string, cfg any) error {
 
 			err := parseField(value, f)
 			if err != nil {
-				return &FieldError{Key: key, Name: fieldName, Type: f.Kind().String(), Value: value, Err: err}
+				return &FieldError{
+					fieldName:  fieldName,
+					fieldType:  f.Kind().String(),
+					fieldValue: value,
+					fieldErr:   err,
+				}
 			}
-
 		}
 	}
 	return nil
 }
 
+// MustParse parses the config and panics if an error occurs.
 func MustParse(prefix string, cfg any) {
 	if err := Parse(prefix, cfg); err != nil {
 		panic(err)
 	}
-}
-
-func parseField(value string, field reflect.Value) error {
-	switch field.Kind() {
-	case reflect.String:
-		field.SetString(value)
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		var (
-			val int64
-			err error
-		)
-		if field.Kind() == reflect.Int64 && field.Type().PkgPath() == "time" && field.Type().Name() == "Duration" {
-			var d time.Duration
-			d, err = time.ParseDuration(value)
-			val = int64(d)
-		} else {
-			val, err = strconv.ParseInt(value, 0, field.Type().Bits())
-		}
-		if err != nil {
-			return err
-		}
-		field.SetInt(val)
-	case reflect.Bool:
-		boolValue, err := strconv.ParseBool(value)
-		if err != nil {
-			return err
-		}
-		field.SetBool(boolValue)
-	case reflect.Float32, reflect.Float64:
-		floatValue, err := strconv.ParseFloat(value, field.Type().Bits())
-		if err != nil {
-			return err
-		}
-		field.SetFloat(floatValue)
-	}
-	return nil
 }
