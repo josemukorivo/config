@@ -6,6 +6,8 @@ import (
 	"os"
 	"reflect"
 	"strings"
+
+	env "github.com/joho/godotenv"
 )
 
 // ErrInvalidConfig is returned when the config is not a pointer to struct.
@@ -13,7 +15,9 @@ var ErrInvalidConfig = errors.New("config: invalid config must be a pointer to s
 var ErrRequiredField = errors.New("config: required field missing value")
 
 // Parse parses the config, the config must be a pointer to struct and the struct can contain nested structs.
-func Parse(prefix string, cfg any) error {
+func Parse(prefix string, cfg any, envFiles ...string) error {
+	// Load the .env file if it exists.
+	env.Load(envFiles...)
 	if reflect.TypeOf(cfg).Kind() != reflect.Ptr {
 		return ErrInvalidConfig
 	}
