@@ -1,4 +1,4 @@
-# config: Efficient Configuration and Environment Variable Management for Golang
+# Efficient Configuration and Environment Variable Management for Golang
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Go Report Card](https://goreportcard.com/badge/github.com/josemukorivo/config)](https://goreportcard.com/report/github.com/josemukorivo/config)
@@ -19,3 +19,145 @@ Config is a lightweight and flexible Golang package designed to simplify configu
 go get -u github.com/josemukorivo/config
 ```
 
+## Usage
+
+### Basic Usage
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/josemukorivo/config"
+)
+
+type Config struct {
+	Host string
+	Port int
+}
+
+func main() {
+	var cfg Config
+
+	// Load configuration from environment variables file
+	if err := config.Parse("app", &cfg, ".env.local"); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(cfg.Host)
+	fmt.Println(cfg.Port)
+}
+```
+
+### Environment Variables
+
+```bash
+APP_HOST=localhost
+APP_PORT=8080
+```
+
+### Default Values
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/josemukorivo/config"
+)
+
+type Config struct {
+	Host string `default:"localhost"`
+	Port int    `default:"8080"`
+}
+
+func main() {
+	var cfg Config
+
+	// Looks for a file named .env by default
+	if err := config.Parse("app", &cfg); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(cfg.Host)
+	fmt.Println(cfg.Port)
+}
+```
+
+### Nested Configuration
+
+```go
+
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/josemukorivo/config"
+)
+
+type Config struct {
+	Host string
+	Port int
+	DB   struct {
+		Host     string
+		Port     int
+		Username string
+		Password string
+	}
+}
+
+func main() {
+	var cfg Config
+
+	if err := config.Parse("app", &cfg); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(cfg.Host)
+	fmt.Println(cfg.Port)
+	fmt.Println(cfg.DB.Host)
+	fmt.Println(cfg.DB.Port)
+	fmt.Println(cfg.DB.Username)
+	fmt.Println(cfg.DB.Password)
+}
+```
+
+### Validation
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/josemukorivo/config"
+)
+
+type Config struct {
+	Host string `required:"true"`
+	Port int    `required:"true"`
+}
+
+
+func main() {
+	var cfg Config
+
+	if err := config.Parse("app", &cfg); err != nil {
+		log.Fatal(err) // Missing required configuration parameters if Host or Port are not provided in the environment
+	}
+
+	fmt.Println(cfg.Host)
+	fmt.Println(cfg.Port)
+}
+```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

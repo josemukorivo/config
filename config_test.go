@@ -134,8 +134,8 @@ func TestRequired(t *testing.T) {
 		Host string `required:"true"`
 	}{}
 
-	if err := Parse("app", &spec); err != ErrRequiredField {
-		t.Fatalf("expected ErrRequiredField, got %v", err)
+	if err := Parse("app", &spec); err == nil {
+		t.Fatal("expected error, got nil")
 	}
 }
 

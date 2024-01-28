@@ -11,10 +11,17 @@ import (
 )
 
 // ErrInvalidConfig is returned when the config is not a pointer to struct.
-var ErrInvalidConfig = errors.New("config: invalid config must be a pointer to struct")
-var ErrRequiredField = errors.New("config: required field missing value")
+var (
+	ErrInvalidConfig = errors.New("config: invalid config must be a pointer to struct")
+)
 
 // Parse parses the config, the config must be a pointer to struct and the struct can contain nested structs.
+// The prefix is used to prefix the environment variables. For example, if the prefix is "app" and the struct
+// contains a field named "Host", the environment variable will be "APP_HOST". If the struct contains a nested
+// struct, the prefix will be the original prefix plus the nested struct name. For example, if the prefix is "app"
+// and the nested struct is named "DB", the environment variable will be "APP_DB_HOST". Parse take an optional
+// list of .env files to load. If the .env file exists, it will be loaded before parsing the config. By default,
+// Parse will look for a .env file and parse it.
 func Parse(prefix string, cfg any, envFiles ...string) error {
 	// Load the .env file if it exists.
 	env.Load(envFiles...)
@@ -63,7 +70,7 @@ func Parse(prefix string, cfg any, envFiles ...string) error {
 
 			if value == "" {
 				if req == "true" {
-					return ErrRequiredField
+					return errors.New("config: required field missing value")
 				}
 				continue
 			}
@@ -83,8 +90,9 @@ func Parse(prefix string, cfg any, envFiles ...string) error {
 }
 
 // MustParse parses the config and panics if an error occurs.
-func MustParse(prefix string, cfg any) {
-	if err := Parse(prefix, cfg); err != nil {
+// See Parse for more information. MustParse is a wrapper around Parse.
+func MustParse(prefix string, cfg any, envFiles ...string) {
+	if err := Parse(prefix, cfg, envFiles...); err != nil {
 		panic(err)
 	}
 }
