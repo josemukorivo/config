@@ -21,9 +21,23 @@ func (e *FieldError) Error() string {
 	)
 }
 
+// Setter is the interface that wraps the Decode method. A type that implements the Setter interface
+// can set it's value from a string value passed to the Decode method.
+type Setter interface {
+	Set(value string) error
+}
+
 // parseField parses a string value into a field.
 func parseField(value string, field reflect.Value) error {
-	switch field.Kind() {
+	t := field.Type()
+
+	// If the field implements the Setter interface, use it to set it's value.
+	// Otherwise, use the default parser. This allows for custom types to be used.
+	if setter := extractSetter(field); setter != nil {
+		return setter.Set(value)
+	}
+
+	switch t.Kind() {
 	case reflect.String:
 		field.SetString(value)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -56,4 +70,28 @@ func parseField(value string, field reflect.Value) error {
 		field.SetFloat(floatValue)
 	}
 	return nil
+}
+
+// extractInterface extracts the interface from a field. It checks if the field implements the interface
+// and if not, it checks if the field's address implements the interface. If the interface is found,
+// the ok parameter is set to true. Otherwise, it is set to false.
+func extractInterface(field reflect.Value, fn func(any, *bool)) {
+	var ok bool
+	if field.CanInterface() {
+		fn(field.Interface(), &ok)
+	}
+	if !ok && field.CanAddr() {
+		fn(field.Addr().Interface(), &ok)
+	}
+}
+
+// extractSetter returns a Setter if the field implements the Setter interface.
+// Otherwise, it returns nil.
+func extractSetter(field reflect.Value) Setter {
+	var s Setter
+	// Check if the field implements the Setter interface.
+	extractInterface(field, func(v any, ok *bool) {
+		s, *ok = v.(Setter)
+	})
+	return s
 }
