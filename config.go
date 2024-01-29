@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
-	"strings"
 
 	env "github.com/joho/godotenv"
 )
@@ -25,66 +23,39 @@ var (
 func Parse(prefix string, cfg any, envFiles ...string) error {
 	// Load the .env file if it exists.
 	env.Load(envFiles...)
-	if reflect.TypeOf(cfg).Kind() != reflect.Ptr {
-		return ErrInvalidConfig
+	fields, err := extractFields(prefix, cfg)
+	if err != nil {
+		return err
 	}
-	v := reflect.ValueOf(cfg).Elem()
-	if v.Kind() != reflect.Struct {
-		return ErrInvalidConfig
-	}
-	t := v.Type()
 
-	for i := 0; i < v.NumField(); i++ {
-		f := v.Field(i)
-		if f.Kind() == reflect.Struct {
-			newPrefix := fmt.Sprintf("%s_%s", prefix, t.Field(i).Name)
-			err := Parse(newPrefix, f.Addr().Interface())
-			if err != nil {
-				return err
-			}
-			continue
+	for _, field := range fields {
+		value, ok := os.LookupEnv(field.EnvKey)
+		if !ok {
+			value, ok = os.LookupEnv(field.Key)
 		}
-		if f.CanSet() {
-			var fieldName string
 
-			customVariable := t.Field(i).Tag.Get("env")
-			if customVariable != "" {
-				fieldName = customVariable
-			} else {
-				fieldName = t.Field(i).Name
+		def := field.Default
+		if def != "" && !ok {
+			value = def
+		}
+
+		if !ok && field.Required && def == "" {
+			key := field.Key
+			if field.EnvKey != "" {
+				key = field.EnvKey
 			}
-			key := strings.ToUpper(fmt.Sprintf("%s_%s", prefix, fieldName))
-			value := os.Getenv(key)
-			// If you can't find the value, try to find the value without the prefix.
-			if value == "" && customVariable != "" {
-				key := strings.ToUpper(fieldName)
-				value = os.Getenv(key)
-			}
-
-			def := t.Field(i).Tag.Get("default")
-			if value == "" && def != "" {
-				value = def
-			}
-
-			req := t.Field(i).Tag.Get("required")
-
-			if value == "" {
-				if req == "true" {
-					return errors.New("config: required field missing value")
-				}
-				continue
-			}
-
-			err := parseField(value, f)
-			if err != nil {
-				return &FieldError{
-					fieldName:  fieldName,
-					fieldType:  f.Kind().String(),
-					fieldValue: value,
-					fieldErr:   err,
-				}
+			return fmt.Errorf("config: required key %s missing value", key)
+		}
+		err := parseField(value, field.Field)
+		if err != nil {
+			return &FieldError{
+				fieldName:  field.Name,
+				fieldType:  field.Field.Type().String(),
+				fieldValue: value,
+				fieldErr:   err,
 			}
 		}
+
 	}
 	return nil
 }

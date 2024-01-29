@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	Host string
-	Port int    `config:"default=8080,required=true,env=app_port"`
+	Port int    `default:"8080" env:"app_port"`
 	User string `env:"config_user" default:"joseph" required:"true"`
 }
 

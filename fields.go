@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -15,6 +16,8 @@ type FieldError struct {
 	fieldErr   error
 }
 
+// Error returns the error message for the FieldError. It includes the field name, the field value,
+// the field type and the error returned by the parser.
 func (e *FieldError) Error() string {
 	return fmt.Sprintf("config: error assigning to field %s: converting '%s' to type %s. details: %s",
 		e.fieldName, e.fieldValue, e.fieldType, e.fieldErr,
@@ -25,6 +28,72 @@ func (e *FieldError) Error() string {
 // can set it's value from a string value passed to the Set method.
 type Setter interface {
 	Set(value string) error
+}
+
+// Field represents a field in a struct.
+type Field struct {
+	Name     string
+	Field    reflect.Value
+	Key      string // The key used to look up the value in the environment.
+	EnvKey   string // The environment variable name used when overriding the default key.
+	Tags     reflect.StructTag
+	Required bool
+	Default  string
+}
+
+// extractFields extracts the fields from the struct and returns a slice of Fields.
+func extractFields(prefix string, cfg any) ([]Field, error) {
+	if reflect.TypeOf(cfg).Kind() != reflect.Ptr {
+		return nil, ErrInvalidConfig
+	}
+	v := reflect.ValueOf(cfg).Elem()
+	if v.Kind() != reflect.Struct {
+		return nil, ErrInvalidConfig
+	}
+	t := v.Type()
+
+	fields := make([]Field, 0, v.NumField())
+	for i := 0; i < v.NumField(); i++ {
+		f := v.Field(i)
+		if !f.CanSet() {
+			continue
+		}
+		if f.Kind() == reflect.Struct {
+			newPrefix := fmt.Sprintf("%s_%s", prefix, t.Field(i).Name)
+			err := Parse(newPrefix, f.Addr().Interface())
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+
+		envKey := strings.ToUpper(t.Field(i).Tag.Get("env"))
+		key := t.Field(i).Name
+
+		if envKey != "" {
+			key = envKey
+		}
+		if prefix != "" {
+			key = strings.ToUpper(fmt.Sprintf("%s_%s", prefix, key))
+		}
+
+		key = strings.ToUpper(key)
+		required := isTrue(t.Field(i).Tag.Get("required"))
+		def := t.Field(i).Tag.Get("default")
+
+		field := Field{
+			Name:     t.Field(i).Name,
+			Field:    f,
+			Tags:     t.Field(i).Tag,
+			Key:      key,
+			Required: required,
+			Default:  def,
+			EnvKey:   envKey,
+		}
+
+		fields = append(fields, field)
+	}
+	return fields, nil
 }
 
 // parseField parses a string value into a field.
@@ -94,4 +163,9 @@ func extractSetter(field reflect.Value) Setter {
 		s, *ok = v.(Setter)
 	})
 	return s
+}
+
+func isTrue(value string) bool {
+	b, _ := strconv.ParseBool(value)
+	return b
 }
