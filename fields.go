@@ -22,7 +22,7 @@ func (e *FieldError) Error() string {
 }
 
 // Setter is the interface that wraps the Decode method. A type that implements the Setter interface
-// can set it's value from a string value passed to the Decode method.
+// can set it's value from a string value passed to the Set method.
 type Setter interface {
 	Set(value string) error
 }
