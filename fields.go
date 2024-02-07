@@ -53,7 +53,7 @@ func extractFields(prefix string, cfg any) ([]Field, error) {
 	t := v.Type()
 
 	fields := make([]Field, 0, v.NumField())
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		f := v.Field(i)
 		if !f.CanSet() {
 			continue
