@@ -199,6 +199,40 @@ func TestParseMap(t *testing.T) {
 	}
 }
 
+func TestParseMapWithSingleQuotedValue(t *testing.T) {
+	os.Clearenv()
+	os.Setenv("APP_LABELS", "'{\"env\":\"prod\"}'")
+
+	spec := struct {
+		Labels map[string]string
+	}{}
+
+	if err := Parse("app", &spec); err != nil {
+		t.Fatal(err)
+	}
+
+	if spec.Labels["env"] != "prod" {
+		t.Fatalf("expected env to be prod, got %s", spec.Labels["env"])
+	}
+}
+
+func TestParseMapWithDoubleQuotedValue(t *testing.T) {
+	os.Clearenv()
+	os.Setenv("APP_LABELS", "\"{\\\"env\\\":\\\"prod\\\"}\"")
+
+	spec := struct {
+		Labels map[string]string
+	}{}
+
+	if err := Parse("app", &spec); err != nil {
+		t.Fatal(err)
+	}
+
+	if spec.Labels["env"] != "prod" {
+		t.Fatalf("expected env to be prod, got %s", spec.Labels["env"])
+	}
+}
+
 func TestMustParse(t *testing.T) {
 	os.Clearenv()
 	os.Setenv("APP_HOST", "localhost")

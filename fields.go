@@ -142,8 +142,19 @@ func parseField(value string, field reflect.Value) error {
 		if t.Key().Kind() != reflect.String {
 			return fmt.Errorf("map keys must be strings")
 		}
+		mapValue := strings.TrimSpace(value)
+		if len(mapValue) >= 2 && mapValue[0] == '"' && mapValue[len(mapValue)-1] == '"' {
+			unquoted, err := strconv.Unquote(mapValue)
+			if err == nil {
+				mapValue = unquoted
+			} else {
+				mapValue = mapValue[1 : len(mapValue)-1]
+			}
+		} else if len(mapValue) >= 2 && mapValue[0] == '\'' && mapValue[len(mapValue)-1] == '\'' {
+			mapValue = mapValue[1 : len(mapValue)-1]
+		}
 		mapPtr := reflect.New(t)
-		if err := json.Unmarshal([]byte(value), mapPtr.Interface()); err != nil {
+		if err := json.Unmarshal([]byte(mapValue), mapPtr.Interface()); err != nil {
 			return err
 		}
 		field.Set(mapPtr.Elem())

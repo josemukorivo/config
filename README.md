@@ -163,6 +163,8 @@ func main() {
 APP_LABELS={"env":"prod","region":"us-east-1"}
 ```
 
+You can also wrap the JSON value in single or double quotes (use ASCII quotes) if needed by your shell or dotenv parser.
+
 ### Validation
 
 ```go
