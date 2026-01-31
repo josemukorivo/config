@@ -131,6 +131,38 @@ func main() {
 }
 ```
 
+### Map Values
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/josemukorivo/config"
+)
+
+type Config struct {
+	Labels map[string]string
+}
+
+func main() {
+	var cfg Config
+
+	if err := config.Parse("app", &cfg); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(cfg.Labels["env"])
+}
+```
+
+`.env`
+```bash
+APP_LABELS={"env":"prod","region":"us-east-1"}
+```
+
 ### Validation
 
 ```go

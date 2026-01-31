@@ -178,6 +178,27 @@ func TestNestedStruct(t *testing.T) {
 
 }
 
+func TestParseMap(t *testing.T) {
+	os.Clearenv()
+	os.Setenv("APP_LABELS", `{"env":"prod","region":"us-east-1"}`)
+
+	spec := struct {
+		Labels map[string]string
+	}{}
+
+	if err := Parse("app", &spec); err != nil {
+		t.Fatal(err)
+	}
+
+	if spec.Labels["env"] != "prod" {
+		t.Fatalf("expected env to be prod, got %s", spec.Labels["env"])
+	}
+
+	if spec.Labels["region"] != "us-east-1" {
+		t.Fatalf("expected region to be us-east-1, got %s", spec.Labels["region"])
+	}
+}
+
 func TestMustParse(t *testing.T) {
 	os.Clearenv()
 	os.Setenv("APP_HOST", "localhost")

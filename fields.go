@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -137,6 +138,15 @@ func parseField(value string, field reflect.Value) error {
 			return err
 		}
 		field.SetFloat(floatValue)
+	case reflect.Map:
+		if t.Key().Kind() != reflect.String {
+			return fmt.Errorf("map keys must be strings")
+		}
+		mapPtr := reflect.New(t)
+		if err := json.Unmarshal([]byte(value), mapPtr.Interface()); err != nil {
+			return err
+		}
+		field.Set(mapPtr.Elem())
 	}
 	return nil
 }
